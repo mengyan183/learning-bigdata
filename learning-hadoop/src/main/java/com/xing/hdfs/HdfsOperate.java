@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 /**
  * hdfs操作相关
@@ -37,13 +39,17 @@ public class HdfsOperate {
         //2创建目录
         boolean exists = fs.exists(new Path("/test"));
         if (exists) {
-            fs.deleteOnExit(new Path("/test"));
+            fs.delete(new Path("/test"), true);
             System.out.println("删除");
         } else {
             fs.mkdirs(new Path("/test/local/client"));
             System.out.println("新增");
             String s = uploadFile(fs, "/test/local/client");
             System.out.println(s);
+            URL resource = HdfsOperate.class.getClassLoader().getResource("uploadFile.txt");
+            String replace = resource.getPath().replace("uploadFile.txt", "copy_uploadFile.txt");
+            downloadFile(fs, s, replace);
+            rename(fs, s, s.replace("uploadFile.txt", "rename_uploadFile.txt"));
         }
         //3关闭资源
         fs.close();
@@ -80,5 +86,39 @@ public class HdfsOperate {
         short defaultReplication = fileSystem.getDefaultReplication(path);
         System.out.println("副本数量为" + defaultReplication);
 
+    }
+
+
+    /**
+     * 将hdfs文件下载到本地
+     * 对于useRawLocalFileSystem 默认为false，表示使用非本地模式，会在本地生成一个crc后缀的文件，表示校验文件的完整性
+     * 修改为true 表示使用本地模式，则不会生成crc后缀文件
+     *
+     * @param fileSystem hdfs 文件系统
+     * @param srcPath    hdfs中资源存储路径
+     * @param desPath    本地资源存储路径
+     * @throws IOException
+     * @throws URISyntaxException
+     */
+    public static void downloadFile(FileSystem fileSystem, String srcPath, String desPath) throws IOException, URISyntaxException {
+//        fileSystem.copyToLocalFile(new Path(srcPath), new Path(desPath));
+        // 该行代码等价于上一行代码
+//        fileSystem.copyToLocalFile(false, new Path(srcPath), new Path(desPath), false);
+        // 使用本地文件系统，不会生成crc后缀文件
+        fileSystem.copyToLocalFile(false, new Path(srcPath), new Path(desPath), true);
+        System.out.println(desPath + " is exists: " + Files.exists(Paths.get(desPath)));
+    }
+
+    /**
+     * hdfs存储文件重命名
+     *
+     * @param fileSystem 文件系统
+     * @param srcPath    hdfs存储的原文件名称
+     * @param reNamePath hdfs存储的修改后文件名称
+     * @throws IOException
+     */
+    public static void rename(FileSystem fileSystem, String srcPath, String reNamePath) throws IOException {
+        fileSystem.rename(new Path(srcPath), new Path(reNamePath));
+        System.out.println(reNamePath + " is exists : " + fileSystem.exists(new Path(reNamePath)));
     }
 }
