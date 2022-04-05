@@ -28,7 +28,7 @@ import java.util.Arrays;
  *
  * @author xingguo
  */
-public class HdfsOperate {
+public class HdfsApiOperate {
     public static void main(String[] args) throws URISyntaxException, IOException, InterruptedException {
         //1获取文件系统
         Configuration configuration = new Configuration();
@@ -46,7 +46,7 @@ public class HdfsOperate {
             System.out.println("新增");
             String s = uploadFile(fs, "/test/local/client");
             System.out.println(s);
-            URL resource = HdfsOperate.class.getClassLoader().getResource("uploadFile.txt");
+            URL resource = HdfsApiOperate.class.getClassLoader().getResource("uploadFile.txt");
             String replace = resource.getPath().replace("uploadFile.txt", "copy_uploadFile.txt");
             downloadFile(fs, s, replace);
             rename(fs, s, s.replace("uploadFile.txt", "rename_uploadFile.txt"));
@@ -66,7 +66,7 @@ public class HdfsOperate {
      */
     public static String uploadFile(FileSystem fileSystem, String destPath) throws IOException, URISyntaxException {
         fileSystem.deleteOnExit(new Path(new Path(destPath), new Path("uploadFile.txt")));
-        URL resource = HdfsOperate.class.getClassLoader().getResource("uploadFile.txt");
+        URL resource = HdfsApiOperate.class.getClassLoader().getResource("uploadFile.txt");
         fileSystem.copyFromLocalFile(new Path(resource.toURI()), new Path(destPath));
         if (!fileSystem.exists(new Path(new Path(destPath), new Path("uploadFile.txt")))) {
             throw new RuntimeException("upload failed");
