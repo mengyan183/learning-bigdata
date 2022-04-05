@@ -51,6 +51,7 @@ public class HdfsOperate {
             downloadFile(fs, s, replace);
             rename(fs, s, s.replace("uploadFile.txt", "rename_uploadFile.txt"));
             showFileDetail(fs, "/test/local/client");
+            verifyFileOrDir(fs, "/test");
         }
         //3关闭资源
         fs.close();
@@ -148,7 +149,30 @@ public class HdfsOperate {
                             e.printStackTrace();
                         }
                     });
-
         }
+    }
+
+    /**
+     * 判断hdfs存储的是文件还是文件夹
+     *
+     * @param fileSystem
+     * @param srcPath    当前路径下包含的内容
+     */
+    public static void verifyFileOrDir(FileSystem fileSystem, String srcPath) throws IOException {
+        FileStatus[] fileStatuses = fileSystem.listStatus(new Path(srcPath));
+        Arrays.stream(fileStatuses)
+                .forEach(fileStatus -> {
+                    System.out.println(fileStatus.getPath().toUri().getPath());
+                    System.out.println("是否是文件:" + fileStatus.isFile());
+                    System.out.println("是否是文件夹:" + fileStatus.isDirectory());
+                    // 如果是文件夹，则继续递归
+                    if (fileStatus.isDirectory()) {
+                        try {
+                            verifyFileOrDir(fileSystem, fileStatus.getPath().toUri().getPath());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
     }
 }
