@@ -2,8 +2,7 @@ package com.xing.hdfs;
 
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.*;
 
 import java.io.IOException;
 import java.net.URI;
@@ -11,6 +10,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 /**
  * hdfs操作相关
@@ -50,6 +50,7 @@ public class HdfsOperate {
             String replace = resource.getPath().replace("uploadFile.txt", "copy_uploadFile.txt");
             downloadFile(fs, s, replace);
             rename(fs, s, s.replace("uploadFile.txt", "rename_uploadFile.txt"));
+            showFileDetail(fs, "/test/local/client");
         }
         //3关闭资源
         fs.close();
@@ -120,5 +121,34 @@ public class HdfsOperate {
     public static void rename(FileSystem fileSystem, String srcPath, String reNamePath) throws IOException {
         fileSystem.rename(new Path(srcPath), new Path(reNamePath));
         System.out.println(reNamePath + " is exists : " + fileSystem.exists(new Path(reNamePath)));
+    }
+
+    /**
+     * 查看hdfs存储文件详情
+     *
+     * @param fileSystem 文件系统
+     * @param srcPath    源路径
+     */
+    public static void showFileDetail(FileSystem fileSystem, String srcPath) throws IOException {
+        // 递归查看指定路径下的所有文件
+        RemoteIterator<LocatedFileStatus> locatedFileStatusRemoteIterator = fileSystem.listFiles(new Path(srcPath), true);
+        while (locatedFileStatusRemoteIterator.hasNext()) {
+            LocatedFileStatus next = locatedFileStatusRemoteIterator.next();
+            // 查看文件名称、权限、长度、块信息
+            System.out.println("文件名：" + next.getPath().getName());
+            System.out.println("权限：" + next.getPermission());
+            System.out.println("长度：" + next.getLen());
+            BlockLocation[] blockLocations = next.getBlockLocations();
+            Arrays.stream(blockLocations)
+                    .forEach(blockLocation -> {
+                        System.out.println("块信息：" + blockLocation);
+                        try {
+                            System.out.println("块所在节点位置:" + Arrays.toString(blockLocation.getHosts()));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    });
+
+        }
     }
 }
