@@ -6,6 +6,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.ElasticByteBufferPool;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Objects;
@@ -34,7 +36,9 @@ public class HdfsIO {
                 .toURI()
                 .toString()
                 .replace("uploadFile.txt", "remoteUploadFile.txt");
+        replace = "./remoteUploadFile.txt";
         java.nio.file.Path path = Paths.get(replace);
+        readCustomBlock(fs, 0, "./temp.txt", s);
         // TODO : unix 系统下 无权限访问文件
         if (!Files.exists(path)) {
             Files.createFile(path);
@@ -99,5 +103,31 @@ public class HdfsIO {
                 IOUtils.copy(open, fileOutputStream);
             }
         }
+    }
+
+
+    /**
+     * 分块读取hdfs上的大文件
+     * 对于上传到hdfs上的大文件 可能由于单个文件超过了 block 大小，所以需要分块存储,对于分块存储的文件可能没有必要读取全部块文件
+     * TODO 文件读取报错
+     */
+    public static void readCustomBlock(FileSystem fileSystem, int blockIndex, String localDestPath, String remoteSrcPath) throws IOException {
+        // unit is bytes
+        long defaultBlockSize = fileSystem.getDefaultBlockSize(new Path(remoteSrcPath));
+        FSDataInputStream open = fileSystem.open(new Path(remoteSrcPath));
+        // 设置读取起始位置
+        open.seek(defaultBlockSize * blockIndex);
+        // 创建输出流
+        FileOutputStream fileOutputStream = new FileOutputStream(localDestPath);
+        IOUtils.copy(open,fileOutputStream);
+//         TODO : 以下方式读取不到数据
+//        // 读取指定块
+//        ByteBuffer read = open.read(new ElasticByteBufferPool(), Math.toIntExact(defaultBlockSize));
+//        // 将读取的数据写入到输出流中
+//        fileOutputStream.write(read.array());
+//        fileOutputStream.flush();
+
+        fileOutputStream.close();
+        open.close();
     }
 }

@@ -1,0 +1,1 @@
+test hdfs upload file through hdfs api
